@@ -3,7 +3,6 @@ package main
 import (
 	"log"
 	"net/http"
-	"os"
 
 	"database/sql"
 	_ "github.com/go-sql-driver/mysql"
@@ -43,11 +42,14 @@ func handleSearch(w http.ResponseWriter,r *http.Request){
 
 
 func main() {
-	dbTmp , err := sql.Open("mysql",os.Getenv("MYSQL_DSN"))
+	LoadConfig()
+
+	dbTmp , err := sql.Open("mysql",DB_DSN)
 	if err != nil {
 		log.Fatal(err)
 	}
 	db = dbTmp
+
 
 	http.HandleFunc("/import", handleImport)    // Triggers an import of the cpe dictionnary
 	http.HandleFunc("/monitor", handleMonitor)  // Send the list of cpes to be monitored (GET)
