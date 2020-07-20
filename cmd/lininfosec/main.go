@@ -3,6 +3,7 @@ package main
 import (
 	"log"
 	"net/http"
+	"encoding/json"
 
 	"database/sql"
 	_ "github.com/go-sql-driver/mysql"
@@ -48,6 +49,29 @@ func handleSearch(db *sql.DB) func (http.ResponseWriter,*http.Request){
 
 }
 
+func handleNotify(db *sql.DB) func (http.ResponseWriter,*http.Request){
+	return func(w http.ResponseWriter,r *http.Request) {
+		log.Println("notify")
+
+		if r.Method != "GET" {
+			http.Error(w, "Method is not supported.", http.StatusNotFound)
+		}
+
+		vulns, err := Notifications(db)
+		if err != nil {
+			log.Printf("%#v\n",err.Error())
+			http.Error(w, "Internal server error",http.StatusInternalServerError)
+		}
+
+		serialized, err := json.Marshal(vulns)
+
+		if err != nil {
+			log.Fatal(err)
+		}
+		w.Header().Set("Content-Type", "application/json")
+		w.Write(serialized)
+	}
+}
 
 
 
@@ -63,6 +87,7 @@ func main() {
 	http.HandleFunc("/import", handleImport(db))    // Triggers an import of the cpe dictionnary
 	http.HandleFunc("/monitor", handleMonitor(db))  // Send the list of cpes to be monitored (GET)
 	http.HandleFunc("/searchCPE", handleSearch(db)) // search for a CPE
+	http.HandleFunc("/notify", handleNotify(db)) // search for a CPE
 	http.ListenAndServe(":9999", nil)
 }
 
