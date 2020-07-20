@@ -114,13 +114,22 @@ func Notifications(db *sql.DB) ([]VulnerableCpe, error) {
 		log.Fatal(err)
 	}
 
-	file := DATA_DIR + "/nvdcve-1.1-recent.json.gz"
-
-	log.Println("Parsing recent CVE dictionary")
-	_, err := cvefeed.LoadJSONDictionary([]string{file}...)
+	log.Println("Parsing recent CVEs dictionary")
+	recentFile := DATA_DIR + "/nvdcve-1.1-recent.json.gz"
+	recent, err := cvefeed.LoadJSONDictionary([]string{recentFile}...)
 	if err != nil {
 		log.Fatal("failed to load recent cves",err)
 	}
+
+	log.Println("Parsing modified CVEs dictionary")
+	modifiedFile := DATA_DIR + "/nvdcve-1.1-modified.json.gz"
+	modified, err := cvefeed.LoadJSONDictionary([]string{modifiedFile}...)
+	if err != nil {
+		log.Fatal("failed to load recent cves",err)
+	}
+	caches := map[string]*cvefeed.Cache{}
+	caches["recent"] = cvefeed.NewCache(recent).SetRequireVersion(true).SetMaxSize(50)
+	caches["modified"] = cvefeed.NewCache(modified).SetRequireVersion(true).SetMaxSize(50)
 
 	stacksCh := getStacksUids(db,ctx,4)
 
@@ -136,5 +145,5 @@ func Notifications(db *sql.DB) ([]VulnerableCpe, error) {
 		log.Println(sStack)
 	}
 	
-	return nil,nil
+	return make([]VulnerableCpe,0),nil
 }
