@@ -8,52 +8,61 @@ import (
 	_ "github.com/go-sql-driver/mysql"
 )
 
-var db *sql.DB
 
-func handleImport (w http.ResponseWriter,r *http.Request){
-	log.Println("import")
+func handleImport(db *sql.DB) func (http.ResponseWriter,*http.Request){
+	return func(w http.ResponseWriter,r *http.Request) {
+		log.Println("import")
 
-	if r.Method != "GET" {
-		http.Error(w, "Method is not supported.", http.StatusNotFound)
+		if r.Method != "GET" {
+			http.Error(w, "Method is not supported.", http.StatusNotFound)
+		}
+
+		panic("not implemented")
 	}
 
-	panic("not implemented")
 }
 
-func handleMonitor (w http.ResponseWriter,r *http.Request){
-	log.Println("monitor")
+func handleMonitor(db *sql.DB) func (http.ResponseWriter,*http.Request){
+	return func(w http.ResponseWriter,r *http.Request) {
+		log.Println("import")
 
-	if r.Method != "GET" {
-		http.Error(w, "Method is not supported.", http.StatusNotFound)
+		if r.Method != "GET" {
+			http.Error(w, "Method is not supported.", http.StatusNotFound)
+		}
+
+		panic("not implemented")
 	}
 
-	panic("not implemented")
 }
 
-func handleSearch(w http.ResponseWriter,r *http.Request){
-	log.Println("search")
+func handleSearch(db *sql.DB) func (http.ResponseWriter,*http.Request){
+	return func(w http.ResponseWriter,r *http.Request) {
+		log.Println("import")
 
-	if r.Method != "POST" {
-		http.Error(w, "Method is not supported.", http.StatusNotFound)
+		if r.Method != "GET" {
+			http.Error(w, "Method is not supported.", http.StatusNotFound)
+		}
+
+		panic("not implemented")
 	}
 
-	panic("not implemented")
 }
+
+
 
 
 func main() {
 	LoadConfig()
 
-	dbTmp , err := sql.Open("mysql",DB_DSN)
+	db, err := sql.Open("mysql",DB_DSN)
 	if err != nil {
 		log.Fatal(err)
 	}
-	db = dbTmp
 
 
-	http.HandleFunc("/import", handleImport)    // Triggers an import of the cpe dictionnary
-	http.HandleFunc("/monitor", handleMonitor)  // Send the list of cpes to be monitored (GET)
-	http.HandleFunc("/searchCPE", handleSearch) // search for a CPE
+	http.HandleFunc("/import", handleImport(db))    // Triggers an import of the cpe dictionnary
+	http.HandleFunc("/monitor", handleMonitor(db))  // Send the list of cpes to be monitored (GET)
+	http.HandleFunc("/searchCPE", handleSearch(db)) // search for a CPE
 	http.ListenAndServe(":9999", nil)
 }
 
