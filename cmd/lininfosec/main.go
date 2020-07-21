@@ -55,12 +55,14 @@ func handleNotify(db *sql.DB) func (http.ResponseWriter,*http.Request){
 
 		if r.Method != "GET" {
 			http.Error(w, "Method is not supported.", http.StatusNotFound)
+			return
 		}
 
 		vulns, err := Notifications(db)
 		if err != nil {
 			log.Printf("%#v\n",err.Error())
 			http.Error(w, "Internal server error",http.StatusInternalServerError)
+			return
 		}
 
 		serialized, err := json.Marshal(vulns)
