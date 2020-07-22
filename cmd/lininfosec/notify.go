@@ -222,20 +222,20 @@ func filterNotifications(db *sql.DB, ctx context.Context, vulns []VulnerableConf
 func Notifications(db *sql.DB) ([]VulnerableConfiguration, error) {
 	var feed nvd.CVE
 	feed.Set("cve-1.1.json.gz")
-	//source := nvd.NewSourceConfig()
+	source := nvd.NewSourceConfig()
 
-	//dfs := nvd.Sync{
-	//	Feeds:    []nvd.Syncer{feed},
-	//	Source:   source,
-	//	LocalDir: DATA_DIR,
-	//}
+	dfs := nvd.Sync{
+		Feeds:    []nvd.Syncer{feed},
+		Source:   source,
+		LocalDir: DATA_DIR,
+	}
 
 	ctx := context.Background()
 
 	log.Println("Loading latest CVEs")
-	//if err := dfs.Do(ctx); err != nil {
-	//	flog.Errorf("%#v",err)
-	//}
+	if err := dfs.Do(ctx); err != nil {
+		flog.Errorf("%#v",err)
+	}
 
 	log.Println("Parsing recent CVEs dictionary")
 	recentFile := DATA_DIR + "/nvdcve-1.1-recent.json.gz"
