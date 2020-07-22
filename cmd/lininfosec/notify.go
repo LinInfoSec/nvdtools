@@ -18,32 +18,32 @@ import (
 	"github.com/facebookincubator/nvdtools/wfn"
 )
 
-func getSoftwareStack(db *sql.DB, ctx context.Context, uid string) ([]string, error) {
+func getSoftwareConfiguration(db *sql.DB, ctx context.Context, uid string) ([]string, error) {
 	q := sqlutil.Select("cpe_uri").
 		From("cpe_monitored").
-		Where(sqlutil.Cond().Equal("stack_uid",uid))
+		Where(sqlutil.Cond().Equal("configuration_uid",uid))
 
 	query, args := q.String(), q.QueryArgs()
 
 	rows, err := db.QueryContext(ctx, query, args...)
 	if err != nil {
-		return nil,errors.Wrap(err,"StackQuery failed")
+		return nil,errors.Wrap(err,"ConfigurationQuery failed")
 	}
 	defer rows.Close()
 	
-	var stack []string
+	var configuration []string
 	for rows.Next() {
 		uri := ""
 		err = rows.Scan(&uri)
 		if err != nil {
-			return nil,errors.Wrap(err, "Stack scan")
+			return nil,errors.Wrap(err, "Configuration scan")
 		}
 
-		stack = append(stack,uri)
+		configuration = append(configuration,uri)
 	}
 
 
-	return stack,nil
+	return configuration,nil
 }
 
 type pair struct {
@@ -52,11 +52,11 @@ type pair struct {
 }
 
 
-func getStacks(db *sql.DB, ctx context.Context, chunkSize int) <-chan pair {
+func getConfigurations(db *sql.DB, ctx context.Context, chunkSize int) <-chan pair {
 	ch := make(chan pair, chunkSize)
 
 	q := sqlutil.Select("uid").
-		From("monitored_stacks")
+		From("monitored_configurations")
 
 	query:= q.String()
 
@@ -64,7 +64,7 @@ func getStacks(db *sql.DB, ctx context.Context, chunkSize int) <-chan pair {
 	if err != nil {
 		ch <- pair{
 			s: nil,
-			err: errors.Wrap(err, "Error getting stacks uids"),
+			err: errors.Wrap(err, "Error getting configurations uids"),
 		}
 		return ch
 	}
@@ -78,22 +78,22 @@ func getStacks(db *sql.DB, ctx context.Context, chunkSize int) <-chan pair {
 			if err != nil {
 				ch <- pair{
 					s: nil,
-					err: errors.Wrap(err,"StackChannel scan failed"),
+					err: errors.Wrap(err,"ConfigurationChannel scan failed"),
 				}
 				return
 			}
 
-			stack, err := getSoftwareStack(db,ctx, uid)
+			configuration, err := getSoftwareConfiguration(db,ctx, uid)
 			if err != nil {
 				ch <- pair{
 					s: nil,
-					err: errors.Wrap(err,"Failed to get a stackscan failed"),
+					err: errors.Wrap(err,"Failed to get a configurationscan failed"),
 				}
 				return
 			}
-			stack = append([]string{uid}, stack...)
+			configuration = append([]string{uid}, configuration...)
 			ch <- pair{
-				s: stack,
+				s: configuration,
 				err: nil,
 			}
 
@@ -103,20 +103,21 @@ func getStacks(db *sql.DB, ctx context.Context, chunkSize int) <-chan pair {
 	return ch
 }
 
-type VulnerableStack struct {
-	Stack string                             `json:"stack"`
+type VulnerableConfiguration struct {
+	Configuration string                             `json:"configuration"`
 	cveId string
 	CVE   *schema.NVDCVEFeedJSON10DefCVEItem  `json:"cve"`
 }
 
-func processAll(in <-chan []string, out chan<- VulnerableStack, caches map[string]*cvefeed.Cache) {
+func processAll(in <-chan []string, out chan<- VulnerableConfiguration, caches map[string]*cvefeed.Cache) {
 	const cpesAt = 1
 	for rec := range in {
+		log.Printf("%#v",rec)
 		if len(rec) == 1 {
-			flog.Errorf("Empty software stack", len(rec))
+			flog.Errorf("Empty software configuration", len(rec))
 			continue
 		} else if len(rec) == 0{
-			flog.Errorf("Unnamed software stack", len(rec))
+			flog.Errorf("Unnamed software configuration", len(rec))
 			continue
 		}
 
@@ -151,8 +152,8 @@ func processAll(in <-chan []string, out chan<- VulnerableStack, caches map[strin
 				
 				switch v := matches.CVE.(type) {
 					case *nvdfeed.Vuln:
-						vuln := VulnerableStack {
-							Stack: rec[0],
+						vuln := VulnerableConfiguration {
+							Configuration: rec[0],
 							cveId: v.ID(),
 							CVE: v.Schema(),
 						}
@@ -168,8 +169,8 @@ func processAll(in <-chan []string, out chan<- VulnerableStack, caches map[strin
 	}
 }
 
-func filterNotifications(db *sql.DB, ctx context.Context, vulns []VulnerableStack) ([]VulnerableStack, error) {
-	filtered := make([]VulnerableStack,0)
+func filterNotifications(db *sql.DB, ctx context.Context, vulns []VulnerableConfiguration) ([]VulnerableConfiguration, error) {
+	filtered := make([]VulnerableConfiguration,0)
 
 	for _,s := range vulns {
 		tx, err := db.Begin()
@@ -177,7 +178,7 @@ func filterNotifications(db *sql.DB, ctx context.Context, vulns []VulnerableStac
 			return nil, errors.Wrap(err, "unable to begin filter transation")
 		}
 
-		rows, err := tx.QueryContext(ctx,"SELECT COUNT(*) FROM cves_notified WHERE cve_id=? AND stack_uid=?",s.cveId,s.Stack)
+		rows, err := tx.QueryContext(ctx,"SELECT COUNT(*) FROM cves_notified WHERE cve_id=? AND configuration_uid=?",s.cveId,s.Configuration)
 		if err != nil {
 			rows.Close()
 			tx.Rollback()
@@ -197,7 +198,7 @@ func filterNotifications(db *sql.DB, ctx context.Context, vulns []VulnerableStac
 			tx.Commit()
 			continue
 		} else {
-			_, err := tx.ExecContext(ctx,"INSERT INTO cves_notified (cve_id,stack_uid) VALUES (?,?)",s.cveId,s.Stack)
+			_, err := tx.ExecContext(ctx,"INSERT INTO cves_notified (cve_id,configuration_uid) VALUES (?,?)",s.cveId,s.Configuration)
 			if err != nil {
 				tx.Rollback()
 				return nil, errors.Wrap(err, "Failed to store the notification")
@@ -214,7 +215,7 @@ func filterNotifications(db *sql.DB, ctx context.Context, vulns []VulnerableStac
 	return filtered, nil
 }
 
-func Notifications(db *sql.DB) ([]VulnerableStack, error) {
+func Notifications(db *sql.DB) ([]VulnerableConfiguration, error) {
 
 	var feed nvd.CVE
 	feed.Set("cve-1.1.json.gz")
@@ -252,9 +253,9 @@ func Notifications(db *sql.DB) ([]VulnerableStack, error) {
 	caches["recent"] = cvefeed.NewCache(recent).SetRequireVersion(true)
 	caches["modified"] = cvefeed.NewCache(modified).SetRequireVersion(true)
 
-	pairsChs := getStacks(db,ctx,4)
-	stacksCh:= make(chan []string,4)
-	vCh := make(chan VulnerableStack,4)
+	pairsChs := getConfigurations(db,ctx,4)
+	configurationsCh:= make(chan []string,4)
+	vCh := make(chan VulnerableConfiguration,4)
 	
 
 	// spawn processing goroutines
@@ -262,7 +263,7 @@ func Notifications(db *sql.DB) ([]VulnerableStack, error) {
 	procWG.Add(4)
 	for i := 0; i < 4; i++ {
 		go func() {
-			processAll(stacksCh, vCh, caches)
+			processAll(configurationsCh, vCh, caches)
 			procWG.Done()
 		}()
 	}
@@ -271,23 +272,23 @@ func Notifications(db *sql.DB) ([]VulnerableStack, error) {
 
 	for pair := range pairsChs {
 		if pair.err != nil {
-			close(stacksCh)
+			close(configurationsCh)
 			procWG.Wait()
 			close(vCh)
 			return nil, pair.err
 		}
 	
-		stacksCh <- pair.s
+		configurationsCh <- pair.s
 	}
 
-	res := make([]VulnerableStack,0)
+	res := make([]VulnerableConfiguration,0)
 	go func() {
 		for v := range vCh {
 			res = append(res,v)
 		}
 	}()
 
-	close(stacksCh)
+	close(configurationsCh)
 	procWG.Wait()
 	close(vCh)
 	log.Println("Found ",len(res), "vulnerabilities")
