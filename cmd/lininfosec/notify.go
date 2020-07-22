@@ -158,7 +158,7 @@ func processAll(in <-chan []string, out chan<- VulnerableStack, caches map[strin
 						}
 						out <- vuln
 					default:
-						log.Printf("Bad vuln type: %#v\n",v)
+						flog.Errorf("Bad vuln type: %#v\n",v)
 					
 				}
 
@@ -230,21 +230,21 @@ func Notifications(db *sql.DB) ([]VulnerableStack, error) {
 
 	log.Println("Loading latest CVEs")
 	//if err := dfs.Do(ctx); err != nil {
-	//	log.Fatal(err)
+	//	flog.Errorf("%#v",err)
 	//}
 
 	log.Println("Parsing recent CVEs dictionary")
 	recentFile := DATA_DIR + "/nvdcve-1.1-recent.json.gz"
 	recent, err := cvefeed.LoadJSONDictionary([]string{recentFile}...)
 	if err != nil {
-		log.Fatal("failed to load recent cves",err)
+		return nil, errors.Wrap(err,"failed to load recent cves")
 	}
 	
 	log.Println("Parsing modified CVEs dictionary")
 	modifiedFile := DATA_DIR + "/nvdcve-1.1-modified.json.gz"
 	modified, err := cvefeed.LoadJSONDictionary([]string{modifiedFile}...)
 	if err != nil {
-		log.Fatal("failed to load recent cves",err)
+		return nil, errors.Wrap(err,"failed to load modified cves")
 	}
 
 	log.Println("Creating CVE caches")
