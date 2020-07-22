@@ -3,8 +3,12 @@ package main
 import (
 	"log"
 	"database/sql"
+	"net/http"
 	"context"
 	"sync"
+	"time"
+	"encoding/json"
+	"bytes"
 	
 	_ "github.com/go-sql-driver/mysql"
 
@@ -216,7 +220,6 @@ func filterNotifications(db *sql.DB, ctx context.Context, vulns []VulnerableConf
 }
 
 func Notifications(db *sql.DB) ([]VulnerableConfiguration, error) {
-
 	var feed nvd.CVE
 	feed.Set("cve-1.1.json.gz")
 	//source := nvd.NewSourceConfig()
@@ -250,6 +253,7 @@ func Notifications(db *sql.DB) ([]VulnerableConfiguration, error) {
 
 	log.Println("Creating CVE caches")
 	caches := map[string]*cvefeed.Cache{}
+	// TODO filter CVEs based on date to reduce the amount of filtering done by filterNotifications
 	caches["recent"] = cvefeed.NewCache(recent).SetRequireVersion(true)
 	caches["modified"] = cvefeed.NewCache(modified).SetRequireVersion(true)
 
@@ -299,5 +303,32 @@ func Notifications(db *sql.DB) ([]VulnerableConfiguration, error) {
 	log.Println("Found ",len(res_filtered), "vulnerabilities missing notifications")
 
 	return res_filtered, nil
+}
+
+func NotificationCron(db *sql.DB, delay time.Duration) {
+	if NOTIFICATION_ENDPOINT == "" {
+		log.Fatal("No notification endpoint configured")
+	}
+	for {
+		notifications, err := Notifications(db)
+		if err != nil {
+			flog.Errorf("Notification error: %#v",err)
+		}
+
+		serialized, err := json.Marshal(notifications)
+		if err != nil {
+			log.Fatal(err)
+		}
+		reader := bytes.NewReader(serialized)
+
+		//TODO add way to authenticate
+		res, err := http.Post(NOTIFICATION_ENDPOINT,"application/json",reader)
+		if err != nil {
+			flog.Errorf("Error sending notifications: %#v", err)
+		} else if res.StatusCode < 200 || res.StatusCode >= 300 {
+			flog.Errorf("Error sending notifications: %#v", res.Status)
+		}
+		time.Sleep(delay)
+	}
 }
 
