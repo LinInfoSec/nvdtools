@@ -90,7 +90,7 @@ func main() {
 	http.HandleFunc("/import", handleImport(db))    // Triggers an import of the cpe dictionnary
 	http.HandleFunc("/monitor", handleMonitor(db))  // Send the list of cpes to be monitored (GET)
 	http.HandleFunc("/searchCPE", handleSearch(db)) // search for a CPE
-	go NotificationCron(db, 30*time.Second)
+	go NotificationCron(db, 30*time.Hour)
 	http.ListenAndServe(":9999", nil)
 }
 
