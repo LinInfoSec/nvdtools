@@ -6,7 +6,7 @@ DROP TABLE IF EXISTS
 	`cves_notified`,
 	`cpe_monitored`,
 	`cpe_references`,
-	`monitored_stacks`,
+	`monitored_configurations`,
 	`cpe_dict`
 ;
 
@@ -47,24 +47,24 @@ COMMENT 'References for each cpe in the CPE dictionnary'
 ;
 
 
-CREATE TABLE monitored_stacks (
-	uid      VARCHAR(255) NOT NULL UNIQUE COMMENT 'unique name of the softawre stack used',
+CREATE TABLE monitored_configurations (
+	uid      VARCHAR(255) NOT NULL UNIQUE COMMENT 'unique name of the softawre configuration used',
 	PRIMARY KEY (`uid`)
 )
 ENGINE InnoDB
 DEFAULT CHARACTER SET utf8mb4
-COMMENT 'Software stack to be monitored for cve publications'
+COMMENT 'Software configuration to be monitored for cve publications'
 ;
 
 CREATE TABLE cpe_monitored (
 	`cpe_uri`        VARCHAR(255) NOT NULL, 
-	`stack_uid`      VARCHAR(255) NOT NULL,
+	`configuration_uid`      VARCHAR(255) NOT NULL,
 	CONSTRAINT monitored_uri_fkey
 		FOREIGN KEY (`cpe_uri`) REFERENCES cpe_dict (`uri`)
 		ON DELETE CASCADE
 		ON UPDATE RESTRICT,
-	CONSTRAINT monitored_stack_fkey
-		FOREIGN KEY (`stack_uid`) REFERENCES monitored_stacks (`uid`)
+	CONSTRAINT monitored_configuration_fkey
+		FOREIGN KEY (`configuration_uid`) REFERENCES monitored_configurations (`uid`)
 		ON DELETE CASCADE
 		ON UPDATE RESTRICT
 )
@@ -77,10 +77,10 @@ CREATE TABLE `cves_notified` (
 	`id`                   INT          NOT NULL AUTO_INCREMENT COMMENT 'ID of the notification',
 	`ts`                   TIMESTAMP    NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT 'Time of the notification',
 	`cve_id`               VARCHAR(128) NOT NULL COMMENT 'Common Vulnerability and Exposure (CVE) ID',
-	`stack_uid`            VARCHAR(255) NOT NULL COMMENT 'Software stack that was notified for the given ID',
+	`configuration_uid`            VARCHAR(255) NOT NULL COMMENT 'Software configuration that was notified for the given ID',
 	PRIMARY KEY (`id`),
 	CONSTRAINT cve_notified_fkey
-		FOREIGN KEY (`stack_uid`) REFERENCES monitored_stacks (`uid`)
+		FOREIGN KEY (`configuration_uid`) REFERENCES monitored_configurations (`uid`)
 		ON DELETE CASCADE
 		ON UPDATE RESTRICT
 )
