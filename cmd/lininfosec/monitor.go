@@ -7,6 +7,7 @@ import (
 	_ "github.com/go-sql-driver/mysql"
 	"github.com/pkg/errors"
 
+	"github.com/facebookincubator/flog"
 	"github.com/facebookincubator/nvdtools/vulndb/sqlutil"
 )
 
@@ -35,8 +36,8 @@ func AddConfiguration(db *sql.DB, conf Configuration) (err error) {
 	ctx := context.Background()
 	tx, err := db.BeginTx(ctx,nil)
 	if err != nil {
-		err = errors.Wrap(err, "Failed to begin configuration transaction")
-		return err
+		flog.Error(err)
+		return errors.New("Internal error")
 	}
 
 	defer func() {
@@ -49,8 +50,8 @@ func AddConfiguration(db *sql.DB, conf Configuration) (err error) {
 	
 	_, err = tx.Exec("INSERT INTO monitored_configurations (uid) VALUES (?)", conf.Name)
 	if err != nil {
-		err = errors.Wrap(err, "Failed to insert values")
-		return err
+		flog.Error(err)
+		return errors.New("Internal error")
 	}
 
 	toInsert := []ConfigurationRecord{}
@@ -72,7 +73,7 @@ func AddConfiguration(db *sql.DB, conf Configuration) (err error) {
 	query, args  := q.String(), q.QueryArgs()
 	_, err = tx.Exec(query, args...)
 	if err != nil {
-		err = errors.Wrap(err, "Cannot insert configuration")
+		flog.Error(err)
 		return err
 	}
 
@@ -83,14 +84,15 @@ func AddConfiguration(db *sql.DB, conf Configuration) (err error) {
 func UpdateConfiguration(db *sql.DB, conf Configuration) (err error) {
 	
 	if len(conf.CPEs) == 0 {
-		return errors.New("Require at least one cpe to monitor")
+		flog.Error(err)
+		return errors.New("Internal error")
 	}
 
 	ctx := context.Background()
 	tx, err := db.BeginTx(ctx,nil)
 	if err != nil {
-		err = errors.Wrap(err, "Failed to begin configuration transaction")
-		return err
+		flog.Error(err)
+		return errors.New("Internal error")
 	}
 
 	defer func() {
@@ -103,31 +105,35 @@ func UpdateConfiguration(db *sql.DB, conf Configuration) (err error) {
 	
 	rows, err := tx.Query("SELECT COUNT(*) FROM monitored_configurations WHERE uid = ?", conf.Name)
 	if err != nil {
-		err = errors.Wrap(err, "Failed to check existence of configuration")
-		return err
+		flog.Error(err)
+		rows.Close()
+		return errors.New("Internal error")
 	}
 	if rows.Next() != true {
-		err = errors.New( "Failed to check existence of configuration")
-		return err
+		flog.Error(err)
+		rows.Close()
+		return errors.New("Internal error")
 	}
 
 	var count int
 	err = rows.Scan(&count)
 	if err != nil{
-		err = errors.Wrap(err, "Failed to check existence of configuration")
-		return err
+		flog.Error(err)
+		rows.Close()
+		return errors.New("Internal error")
 	}
 	if count != 1 {
-		err = errors.New("Configuration doesn't exist")
-		return err
+		flog.Error(err)
+		rows.Close()
+		return errors.New("Configuration doesn't exist")
 	}
 	rows.Close()
 
 
 	_, err = tx.Exec("DELETE FROM cpe_monitored WHERE configuration_uid = ?",conf.Name)
 	if err != nil {
-		err = errors.Wrap(err, "Failed to delete old configuration")
-		return err
+		flog.Error(err)
+		return errors.New("Internal error")
 	}
 	
 
@@ -151,8 +157,8 @@ func UpdateConfiguration(db *sql.DB, conf Configuration) (err error) {
 	query, args  := q.String(), q.QueryArgs()
 	_, err = tx.Exec(query, args...)
 	if err != nil {
-		err = errors.Wrap(err, "Cannot insert configuration")
-		return err
+		flog.Error(err)
+		return errors.New("Internal error")
 	}
 
 
@@ -164,8 +170,8 @@ func DeleteConfiguration(db *sql.DB, uid string) (err error) {
 	ctx := context.Background()
 	tx, err := db.BeginTx(ctx,nil)
 	if err != nil {
-		err = errors.Wrap(err, "Failed to begin configuration transaction")
-		return err
+		flog.Error(err)
+		return errors.New("Internal error")
 	}
 
 	defer func() {
@@ -178,37 +184,41 @@ func DeleteConfiguration(db *sql.DB, uid string) (err error) {
 	rows, err := tx.Query("SELECT COUNT(*) FROM monitored_configurations WHERE uid = ?", uid)
 	if err != nil {
 		err = errors.Wrap(err, "Failed to check existence of configuration")
+		rows.Close()
 		return err
 	}
 	if rows.Next() != true {
-		err = errors.New("Failed to check existence of configuration")
-		return err
+		rows.Close()
+		return errors.New("Internal error")
 	}
 
 	var count int
 	err = rows.Scan(&count)
 	if err != nil{
-		err = errors.Wrap(err, "Failed to check existence of configuration")
-		return err
+		if err != nil {
+			flog.Error(err)
+			rows.Close()
+			return errors.New("Internal error")
+		}
 	}
 	if count != 1 {
-		err = errors.New("Configuration doesn't exist")
-		return err
+		rows.Close()
+		return errors.New("Configuration doesn't exist")
 	}
 	rows.Close()
 
 
 	_, err = tx.Exec("DELETE FROM cpe_monitored WHERE configuration_uid = ?",uid)
 	if err != nil {
-		err = errors.Wrap(err, "Failed to delete old configuration")
-		return err
+		flog.Error(err)
+		return errors.New("Internal error")
 	}
 
 	_, err = tx.Exec("DELETE FROM monitored_configurations WHERE uid = ?",uid)
 	if err != nil {
-		err = errors.Wrap(err, "Failed to delete old configuration")
-		return err
+		flog.Error(err)
+		return errors.New("Internal error")
 	}
 	
-	return err
+	return nil
 }
