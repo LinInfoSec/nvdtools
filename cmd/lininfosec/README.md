@@ -152,9 +152,7 @@ When a vulnerability is detected a HTTP POST request is sent to a configured end
 [
 	{
 		"configuration" : "host1.foo.bar",
-		"cve" :  {
-			"type": "CVE_JSON_4.0_min_1.1.schema"
-		}
+		"cve" :  " as described by the NVD cve json schema: CVE_JSON_4.0_min_1.1.schema"
 	}
 ]
 ```
