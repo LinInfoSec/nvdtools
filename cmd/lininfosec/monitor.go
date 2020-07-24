@@ -28,7 +28,7 @@ type ConfigurationRecord struct {
 
 func AddConfiguration(db *sql.DB, conf Configuration) (err error) {
 	
-	if len(conf.cpes) == 0 {
+	if len(conf.CPEs) == 0 {
 		return errors.New("Require at least one cpe to monitor")
 	}
 
@@ -36,7 +36,7 @@ func AddConfiguration(db *sql.DB, conf Configuration) (err error) {
 	tx, err := db.BeginTx(ctx,nil)
 	if err != nil {
 		err = errors.Wrap(err, "Failed to begin configuration transaction")
-		return
+		return err
 	}
 
 	defer func() {
@@ -50,7 +50,7 @@ func AddConfiguration(db *sql.DB, conf Configuration) (err error) {
 	_, err = tx.Exec("INSERT INTO monitored_configurations (uid) VALUES (?)", conf.Name)
 	if err != nil {
 		err = errors.Wrap(err, "Failed to insert values")
-		return
+		return err
 	}
 
 	toInsert := []ConfigurationRecord{}
@@ -73,10 +73,89 @@ func AddConfiguration(db *sql.DB, conf Configuration) (err error) {
 	_, err = tx.Exec(query, args...)
 	if err != nil {
 		err = errors.Wrap(err, "Cannot insert configuration")
-		return
+		return err
 	}
 
-	return
+	return err
 }
 
+
+func UpdateConfiguration(db *sql.DB, conf Configuration) (err error) {
+	
+	if len(conf.CPEs) == 0 {
+		return errors.New("Require at least one cpe to monitor")
+	}
+
+	ctx := context.Background()
+	tx, err := db.BeginTx(ctx,nil)
+	if err != nil {
+		err = errors.Wrap(err, "Failed to begin configuration transaction")
+		return err
+	}
+
+	defer func() {
+		if err != nil {
+			tx.Rollback()
+		} else {
+			err = tx.Commit()
+		}
+	}()
+	
+	rows, err := tx.Query("SELECT COUNT(*) FROM monitored_configurations WHERE uid = ?", conf.Name)
+	if err != nil {
+		err = errors.Wrap(err, "Failed to check existence of configuration")
+		return err
+	}
+	if rows.Next() != true {
+		err = errors.New( "Failed to check existence of configuration")
+		return err
+	}
+
+	var count int
+	err = rows.Scan(&count)
+	if err != nil{
+		err = errors.Wrap(err, "Failed to check existence of configuration")
+		return err
+	}
+	if count != 1 {
+		err = errors.New( "Failed to check existence of configuration")
+		return err
+	}
+	rows.Close()
+
+
+	_, err = tx.Exec("DELETE FROM cpe_monitored WHERE configuration_uid = ?",conf.Name)
+	if err != nil {
+		err = errors.Wrap(err, "Failed to delete old configuration")
+		return err
+	}
+	
+
+
+	toInsert := []ConfigurationRecord{}
+
+	for _, cpe := range conf.CPEs {
+		rec := ConfigurationRecord {
+			URI: cpe,
+			Configuration: conf.Name,
+		}
+		toInsert = append(toInsert, rec)
+	}
+
+	records := sqlutil.NewRecords(toInsert)
+	q := sqlutil.Insert().
+		Into("cpe_monitored").
+		Fields(records.Fields()...).
+		Values(records...)
+
+	query, args  := q.String(), q.QueryArgs()
+	_, err = tx.Exec(query, args...)
+	if err != nil {
+		err = errors.Wrap(err, "Cannot insert configuration")
+		return err
+	}
+
+
+	return err
+}
 

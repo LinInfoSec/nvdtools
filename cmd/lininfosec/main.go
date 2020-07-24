@@ -61,7 +61,25 @@ func handleMonitor(db *sql.DB, action int) func (http.ResponseWriter,*http.Reque
 				http.Error(w, "Method is not supported.", http.StatusNotFound)
 			}
 
-			panic("not implemented")
+			body, err := ioutil.ReadAll(r.Body)
+			if err != nil {
+				http.Error(w, "Missing body",http.StatusBadRequest)
+				log.Println(err)
+				return
+			}
+
+			var conf Configuration
+			if err = json.Unmarshal(body,&conf); err != nil {
+				http.Error(w, "Bad body",http.StatusBadRequest)
+				log.Println(err)
+				return
+			}
+
+			if err = UpdateConfiguration(db, conf); err != nil {
+				http.Error(w, "Could not update",http.StatusBadRequest)
+				log.Println(err)
+				return
+			}
 		}
 	} else if action == REMOVE {
 		return func(w http.ResponseWriter,r *http.Request) {
