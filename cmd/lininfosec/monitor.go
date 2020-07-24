@@ -118,7 +118,7 @@ func UpdateConfiguration(db *sql.DB, conf Configuration) (err error) {
 		return err
 	}
 	if count != 1 {
-		err = errors.New( "Failed to check existence of configuration")
+		err = errors.New("Configuration doesn't exist")
 		return err
 	}
 	rows.Close()
@@ -159,3 +159,56 @@ func UpdateConfiguration(db *sql.DB, conf Configuration) (err error) {
 	return err
 }
 
+func DeleteConfiguration(db *sql.DB, uid string) (err error) {
+	
+	ctx := context.Background()
+	tx, err := db.BeginTx(ctx,nil)
+	if err != nil {
+		err = errors.Wrap(err, "Failed to begin configuration transaction")
+		return err
+	}
+
+	defer func() {
+		if err != nil {
+			tx.Rollback()
+		} else { err = tx.Commit()
+		}
+	}()
+	
+	rows, err := tx.Query("SELECT COUNT(*) FROM monitored_configurations WHERE uid = ?", uid)
+	if err != nil {
+		err = errors.Wrap(err, "Failed to check existence of configuration")
+		return err
+	}
+	if rows.Next() != true {
+		err = errors.New("Failed to check existence of configuration")
+		return err
+	}
+
+	var count int
+	err = rows.Scan(&count)
+	if err != nil{
+		err = errors.Wrap(err, "Failed to check existence of configuration")
+		return err
+	}
+	if count != 1 {
+		err = errors.New("Configuration doesn't exist")
+		return err
+	}
+	rows.Close()
+
+
+	_, err = tx.Exec("DELETE FROM cpe_monitored WHERE configuration_uid = ?",uid)
+	if err != nil {
+		err = errors.Wrap(err, "Failed to delete old configuration")
+		return err
+	}
+
+	_, err = tx.Exec("DELETE FROM monitored_configurations WHERE uid = ?",uid)
+	if err != nil {
+		err = errors.Wrap(err, "Failed to delete old configuration")
+		return err
+	}
+	
+	return err
+}
