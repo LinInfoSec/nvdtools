@@ -35,8 +35,12 @@ COMMENT 'CPE dictionnary'
 CREATE TABLE `cpe_references` (
 	`cpe_uri`     VARCHAR(255) NOT NULL, 
 	`url`         TEXT NOT NULL,
-	`description` VARCHAR(255),
-	PRIMARY KEY (`cpe_uri`, `description`),
+	`description` TEXT,
+	PRIMARY KEY (`cpe_uri`, `url`(255),`description`(255)),
+	 -- 255 Limit to fit within the maximum key length:
+	 --     some entries in the CPE dictionnary have urls and descriptions of up to 300 chars
+	 --     Restricting the key to the first 255 characters is very unlikely to create false duplicates
+	 --       and doesn't happen in the dictionnary as it is at the time of creation of this schema
 	CONSTRAINT references_uri_fkey
 		FOREIGN KEY (`cpe_uri`) REFERENCES cpe_dict (`uri`)
 		ON DELETE CASCADE
