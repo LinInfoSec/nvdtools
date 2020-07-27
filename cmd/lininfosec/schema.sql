@@ -27,16 +27,17 @@ CREATE TABLE `cpe_dict` (
 	PRIMARY KEY (`uri`),
 	FULLTEXT INDEX (`title`)
 )
-ENGINE InnoDB
 DEFAULT CHARACTER SET utf8mb4
+ENGINE InnoDB
 COMMENT 'CPE dictionnary'
 ;
 
 CREATE TABLE `cpe_references` (
-	`cpe_uri`        VARCHAR(255) NOT NULL, 
-	`url` TEXT NOT NULL,
-	`description` TEXT,
-	CONSTRAINT reference_fkey
+	`cpe_uri`     VARCHAR(255) NOT NULL, 
+	`url`         TEXT NOT NULL,
+	`description` VARCHAR(255),
+	PRIMARY KEY (`cpe_uri`, `description`),
+	CONSTRAINT references_uri_fkey
 		FOREIGN KEY (`cpe_uri`) REFERENCES cpe_dict (`uri`)
 		ON DELETE CASCADE
 		ON UPDATE RESTRICT

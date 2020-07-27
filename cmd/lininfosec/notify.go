@@ -310,6 +310,7 @@ func NotificationCron(db *sql.DB, delay time.Duration) {
 		log.Fatal("No notification endpoint configured")
 	}
 	for {
+		time.Sleep(delay)
 		notifications, err := Notifications(db)
 		if err != nil {
 			flog.Errorf("Notification error: %#v",err)
@@ -328,7 +329,6 @@ func NotificationCron(db *sql.DB, delay time.Duration) {
 		} else if res.StatusCode < 200 || res.StatusCode >= 300 {
 			flog.Errorf("Error sending notifications: %#v", res.Status)
 		}
-		time.Sleep(delay)
 	}
 }
 
