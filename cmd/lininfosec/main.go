@@ -6,9 +6,12 @@ import (
 	"time"
 	"encoding/json"
 	"io/ioutil"
+	"context"
+	"strconv"
 
 	"database/sql"
 	"github.com/pkg/errors"
+	"github.com/facebookincubator/flog"
 	_ "github.com/go-sql-driver/mysql"
 )
 
@@ -119,16 +122,58 @@ func handleMonitor(db *sql.DB, action int) func (http.ResponseWriter,*http.Reque
 }
 
 func handleSearch(db *sql.DB) func (http.ResponseWriter,*http.Request){
-	return func(w http.ResponseWriter,r *http.Request) {
-		log.Println("import")
-
+	return func (w http.ResponseWriter,r *http.Request){
+		log.Println("Search")
 		if r.Method != "GET" {
 			http.Error(w, "Method is not supported.", http.StatusNotFound)
+			return
 		}
 
-		panic("not implemented")
-	}
+		r.ParseForm()
+		ctx := context.Background()
+		if len(r.Form["query"]) != 1 {
+			http.Error(w, "Bad number of queries",http.StatusBadRequest)
+			return
+		}
 
+		var start int
+		if len(r.Form["start"]) != 0 {
+			s, err := strconv.Atoi(r.Form["start"][0])
+			log.Println(s)
+			if err == nil {
+				start = s
+			}
+		}
+
+		count := 20
+		if len(r.Form["count"]) != 0 {
+			s, err := strconv.Atoi(r.Form["count"][0])
+			log.Println(s)
+			if err == nil || s > 50 {
+				count = s
+			}
+		}
+
+		res, err := CPESearch(r.Form["query"][0],start,count,db,ctx)
+		if err != nil {
+			if err == errors.New("Internal error") {
+				http.Error(w, "Internal error",http.StatusInternalServerError)
+				return
+			} else {
+				http.Error(w, err.Error(),http.StatusBadRequest)
+				return
+			}
+		}
+
+		serialized, err := json.Marshal(res)
+		if err != nil {
+			flog.Error(err)
+			http.Error(w, "Internal error",http.StatusInternalServerError)
+			return
+		}
+		w.Header().Set("Content-Type", "application/json")
+		w.Write(serialized)
+	}
 }
 
 
