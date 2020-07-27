@@ -13,17 +13,6 @@ import (
 )
 
 
-func handleImport(db *sql.DB) func (http.ResponseWriter,*http.Request){
-	return func(w http.ResponseWriter,r *http.Request) {
-		log.Println("import")
-
-		if r.Method != "GET" {
-			http.Error(w, "Method is not supported.", http.StatusNotFound)
-		}
-
-		panic("not implemented")
-	}
-}
 
 func handleMonitor(db *sql.DB, action int) func (http.ResponseWriter,*http.Request){
 	if action == ADD {
@@ -152,7 +141,6 @@ func main() {
 	}
 
 
-	http.HandleFunc("/import", handleImport(db))    // Triggers an import of the cpe dictionnary
 	http.HandleFunc("/monitor/add", handleMonitor(db,ADD))  // Add configurations to be monitored
 	http.HandleFunc("/monitor/remove", handleMonitor(db,REMOVE))  // Remove configurations to be monitored
 	http.HandleFunc("/monitor/update", handleMonitor(db,UPDATE))  // Remove configurations to be monitored
