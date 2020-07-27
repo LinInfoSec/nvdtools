@@ -143,8 +143,6 @@ func handleSearch(db *sql.DB) func (http.ResponseWriter,*http.Request){
 }
 
 
-
-
 func main() {
 	LoadConfig()
 
@@ -159,8 +157,10 @@ func main() {
 	http.HandleFunc("/monitor/remove", handleMonitor(db,REMOVE))  // Remove configurations to be monitored
 	http.HandleFunc("/monitor/update", handleMonitor(db,UPDATE))  // Remove configurations to be monitored
 	http.HandleFunc("/searchCPE", handleSearch(db)) // search for a CPE
-	go NotificationCron(db, 2*time.Hour)
-	go ImportCron(db, 2*time.Hour)
+
+	go NotificationCron(db,2* time.Hour)
+	go ImportCron(db, 24*time.Hour)
+
 	http.ListenAndServe(":9999", nil)
 }
 

@@ -5,6 +5,7 @@ import (
 	"os"
 	"log"
 	"time"
+	"compress/gzip"
 
 	"database/sql"
 	_ "github.com/go-sql-driver/mysql"
@@ -12,6 +13,7 @@ import (
 
 	"github.com/facebookincubator/flog"
 	"github.com/facebookincubator/nvdtools/cpedict"
+	"github.com/facebookincubator/nvdtools/providers/nvd"
 	"github.com/facebookincubator/nvdtools/wfn"
 	"github.com/facebookincubator/nvdtools/vulndb/sqlutil"
 )
@@ -77,18 +79,37 @@ func insertBatch(batch []CPERecord,references []ReferenceRecord,db *sql.DB, ctx 
 	return nil
 }
 
-func ImportDictionnary(db *sql.DB,ctx context.Context, dictionnaryPath string) error {
+func ImportDictionnary(db *sql.DB,ctx context.Context) error {
 
-	//TODO redownload the dictionnary automatically
-	dict, err := os.Open(dictionnaryPath)
-	if err != nil {
-		dict.Close()
+	var feed nvd.CPE
+	feed.Set("cpe-2.3.xml.gz")
+
+	source := nvd.NewSourceConfig()
+	dfs := nvd.Sync{
+		Feeds:    []nvd.Syncer{feed},
+		Source:   source,
+		LocalDir: DATA_DIR,
+	}
+
+	log.Println("Downloading CPE dictionnary")
+	if err := dfs.Do(ctx); err != nil {
 		return err
 	}
 
-	log.Println("CPE dictionnary import launched")
+	dict_compressed, err := os.Open(DATA_DIR + "/official-cpe-dictionary_v2.3.xml.gz")
+	if err != nil {
+		return err
+	}
+
+	dict, err := gzip.NewReader(dict_compressed)
+	if err != nil {
+		dict_compressed.Close()
+		return err
+	}
+
 	log.Println("Decoding xml dictionnary")
 	list, err := cpedict.Decode(dict)
+	dict_compressed.Close()
 	dict.Close()
 	if err != nil {
 		return err
@@ -149,7 +170,7 @@ func ImportDictionnary(db *sql.DB,ctx context.Context, dictionnaryPath string) e
 
 func ImportCron(db *sql.DB, delay time.Duration) {
 	for {
-		if err := ImportDictionnary(db,context.Background(),DATA_DIR + "/official-cpe-dictionary_v2.3.xml"); err != nil {
+		if err := ImportDictionnary(db,context.Background()); err != nil {
 			flog.Error(err)
 		}
 		time.Sleep(delay)
