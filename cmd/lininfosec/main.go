@@ -148,13 +148,18 @@ func handleSearch(db *sql.DB) func (http.ResponseWriter,*http.Request){
 		count := 20
 		if len(r.Form["count"]) != 0 {
 			s, err := strconv.Atoi(r.Form["count"][0])
-			log.Println(s)
 			if err == nil || s > 50 {
 				count = s
 			}
 		}
 
-		res, err := CPESearch(r.Form["query"][0],start,count,db,ctx)
+		data := searchData {
+			query: r.Form["query"][0],
+			start: start,
+			count: count,
+		}
+
+		res, err := CPESearch(data,db,ctx)
 		if err != nil {
 			if err == errors.New("Internal error") {
 				http.Error(w, "Internal error",http.StatusInternalServerError)
@@ -190,7 +195,7 @@ func main() {
 	http.HandleFunc("/monitor/remove", handleMonitor(db,REMOVE))  // Remove configurations to be monitored
 	http.HandleFunc("/monitor/update", handleMonitor(db,UPDATE))  // Remove configurations to be monitored
 	http.HandleFunc("/searchCPE", handleSearch(db)) // search for a CPE
-
+	
 	go NotificationCron(db,2* time.Hour)
 	go ImportCron(db, 24*time.Hour)
 
