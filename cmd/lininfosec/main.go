@@ -195,6 +195,7 @@ func main() {
 	http.HandleFunc("/monitor/remove", handleMonitor(db,REMOVE))  // Remove configurations to be monitored
 	http.HandleFunc("/monitor/update", handleMonitor(db,UPDATE))  // Remove configurations to be monitored
 	http.HandleFunc("/searchCPE", handleSearch(db)) // search for a CPE
+
 	
 	go NotificationCron(db,2* time.Hour)
 	go ImportCron(db, 24*time.Hour)
