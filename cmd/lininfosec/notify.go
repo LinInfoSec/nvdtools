@@ -5,7 +5,6 @@ import (
 	"context"
 	"database/sql"
 	"encoding/json"
-	"log"
 	"net/http"
 	"sync"
 	"time"
@@ -114,7 +113,6 @@ type VulnerableConfiguration struct {
 func processAll(in <-chan []string, out chan<- VulnerableConfiguration, caches map[string]*cvefeed.Cache) {
 	const cpesAt = 1
 	for rec := range in {
-		log.Printf("%#v", rec)
 		if len(rec) == 1 {
 			flog.Errorf("Empty software configuration", len(rec))
 			continue
@@ -229,26 +227,26 @@ func Notifications(db *sql.DB) ([]VulnerableConfiguration, error) {
 
 	ctx := context.Background()
 
-	log.Println("Loading latest CVEs")
+	flog.Info("Loading latest CVEs")
 	if err := dfs.Do(ctx); err != nil {
 		flog.Errorf("%#v", err)
 	}
 
-	log.Println("Parsing recent CVEs dictionary")
+	flog.Info("Parsing recent CVEs dictionary")
 	recentFile := DATA_DIR + "/nvdcve-1.1-recent.json.gz"
 	recent, err := cvefeed.LoadJSONDictionary([]string{recentFile}...)
 	if err != nil {
 		return nil, errors.Wrap(err, "failed to load recent cves")
 	}
 
-	log.Println("Parsing modified CVEs dictionary")
+	flog.Info("Parsing modified CVEs dictionary")
 	modifiedFile := DATA_DIR + "/nvdcve-1.1-modified.json.gz"
 	modified, err := cvefeed.LoadJSONDictionary([]string{modifiedFile}...)
 	if err != nil {
 		return nil, errors.Wrap(err, "failed to load modified cves")
 	}
 
-	log.Println("Creating CVE caches")
+	flog.Info("Creating CVE caches")
 	caches := map[string]*cvefeed.Cache{}
 	// TODO filter CVEs based on date to reduce the amount of filtering done by filterNotifications
 	caches["recent"] = cvefeed.NewCache(recent).SetRequireVersion(true)
@@ -289,19 +287,19 @@ func Notifications(db *sql.DB) ([]VulnerableConfiguration, error) {
 	close(configurationsCh)
 	procWG.Wait()
 	close(vCh)
-	log.Println("Found ", len(res), "vulnerabilities")
+	flog.Info("Found ", len(res), "vulnerabilities")
 	res_filtered, err := filterNotifications(db, ctx, res)
 	if err != nil {
 		return nil, err
 	}
-	log.Println("Found ", len(res_filtered), "vulnerabilities missing notifications")
+	flog.Info("Found ", len(res_filtered), "vulnerabilities missing notifications")
 
 	return res_filtered, nil
 }
 
 func NotificationCron(db *sql.DB, delay time.Duration) {
 	if NOTIFICATION_ENDPOINT == "" {
-		log.Fatal("No notification endpoint configured")
+		panic("No notification endpoint configured")
 	}
 	for {
 		time.Sleep(delay)
@@ -312,7 +310,7 @@ func NotificationCron(db *sql.DB, delay time.Duration) {
 
 		serialized, err := json.Marshal(notifications)
 		if err != nil {
-			log.Fatal(err)
+			flog.Error(err)
 		}
 		reader := bytes.NewReader(serialized)
 

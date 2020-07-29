@@ -4,7 +4,6 @@ import (
 	"context"
 	"encoding/json"
 	"io/ioutil"
-	"log"
 	"net/http"
 	"strconv"
 	"time"
@@ -18,8 +17,7 @@ import (
 func handleMonitor(db *sql.DB, action int) func(http.ResponseWriter, *http.Request) {
 	if action == ADD {
 		return func(w http.ResponseWriter, r *http.Request) {
-			log.Println("add")
-
+			flog.Info("Add configuration")
 			if r.Method != "POST" {
 				http.Error(w, "Method is not supported.", http.StatusNotFound)
 			}
@@ -27,7 +25,7 @@ func handleMonitor(db *sql.DB, action int) func(http.ResponseWriter, *http.Reque
 			body, err := ioutil.ReadAll(r.Body)
 			if err != nil {
 				http.Error(w, "Missing body", http.StatusBadRequest)
-				log.Println(err)
+				flog.Error(err)
 				return
 			}
 
@@ -48,7 +46,7 @@ func handleMonitor(db *sql.DB, action int) func(http.ResponseWriter, *http.Reque
 		}
 	} else if action == UPDATE {
 		return func(w http.ResponseWriter, r *http.Request) {
-			log.Println("update")
+			flog.Info("Update configuration")
 
 			if r.Method != "POST" {
 				http.Error(w, "Method is not supported.", http.StatusNotFound)
@@ -57,14 +55,13 @@ func handleMonitor(db *sql.DB, action int) func(http.ResponseWriter, *http.Reque
 			body, err := ioutil.ReadAll(r.Body)
 			if err != nil {
 				http.Error(w, "Missing body", http.StatusBadRequest)
-				log.Println(err)
 				return
 			}
 
 			var conf Configuration
 			if err = json.Unmarshal(body, &conf); err != nil {
 				http.Error(w, err.Error(), http.StatusBadRequest)
-				log.Println(err)
+				flog.Error(err)
 				return
 			}
 
@@ -79,7 +76,7 @@ func handleMonitor(db *sql.DB, action int) func(http.ResponseWriter, *http.Reque
 		}
 	} else if action == REMOVE {
 		return func(w http.ResponseWriter, r *http.Request) {
-			log.Println("remove")
+			flog.Info("Remove configuration")
 
 			if r.Method != "POST" {
 				http.Error(w, "Method is not supported.", http.StatusNotFound)
@@ -88,7 +85,6 @@ func handleMonitor(db *sql.DB, action int) func(http.ResponseWriter, *http.Reque
 			body, err := ioutil.ReadAll(r.Body)
 			if err != nil {
 				http.Error(w, err.Error(), http.StatusBadRequest)
-				log.Println(err)
 				return
 			}
 
@@ -98,7 +94,6 @@ func handleMonitor(db *sql.DB, action int) func(http.ResponseWriter, *http.Reque
 
 			if err = json.Unmarshal(body, &conf); err != nil {
 				http.Error(w, err.Error(), http.StatusBadRequest)
-				log.Println(err)
 				return
 			}
 
@@ -113,7 +108,7 @@ func handleMonitor(db *sql.DB, action int) func(http.ResponseWriter, *http.Reque
 		}
 	} else if action == GET {
 		return func(w http.ResponseWriter, r *http.Request) {
-			log.Println("get")
+			flog.Info("Get configuration")
 
 			if r.Method != "GET" {
 				http.Error(w, "Method is not supported.", http.StatusNotFound)
@@ -154,7 +149,7 @@ func handleMonitor(db *sql.DB, action int) func(http.ResponseWriter, *http.Reque
 
 func handleSearch(db *sql.DB) func(http.ResponseWriter, *http.Request) {
 	return func(w http.ResponseWriter, r *http.Request) {
-		log.Println("Search")
+		flog.Info("Search cpes")
 		if r.Method != "GET" {
 			http.Error(w, "Method is not supported.", http.StatusNotFound)
 			return
@@ -170,7 +165,6 @@ func handleSearch(db *sql.DB) func(http.ResponseWriter, *http.Request) {
 		var start int
 		if len(r.Form["start"]) != 0 {
 			s, err := strconv.Atoi(r.Form["start"][0])
-			log.Println(s)
 			if err == nil {
 				start = s
 			}
@@ -214,7 +208,7 @@ func handleSearch(db *sql.DB) func(http.ResponseWriter, *http.Request) {
 
 func handleInfo(db *sql.DB) func(http.ResponseWriter, *http.Request) {
 	return func(w http.ResponseWriter, r *http.Request) {
-		log.Println("productVersions")
+		flog.Info("Product Info")
 		if r.Method != "GET" {
 			http.Error(w, "Method is not supported.", http.StatusNotFound)
 			return
@@ -238,7 +232,6 @@ func handleInfo(db *sql.DB) func(http.ResponseWriter, *http.Request) {
 		var start int
 		if len(r.Form["start"]) != 0 {
 			s, err := strconv.Atoi(r.Form["start"][0])
-			log.Println(s)
 			if err == nil {
 				start = s
 			}
@@ -287,7 +280,7 @@ func main() {
 
 	db, err := sql.Open("mysql", DB_DSN)
 	if err != nil {
-		log.Fatal(err)
+		panic(err)
 	}
 
 	http.HandleFunc("/monitor/add", handleMonitor(db, ADD))       // Add configurations to be monitored

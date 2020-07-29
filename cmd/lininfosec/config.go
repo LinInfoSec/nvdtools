@@ -1,7 +1,6 @@
 package main
 
 import (
-	"log"
 	"os"
 )
 
@@ -14,9 +13,9 @@ func LoadConfig() {
 	DATA_DIR = os.Getenv("LININFOSEC_DATA_DIR")
 	NOTIFICATION_ENDPOINT = os.Getenv("LININFOSEC_NOTIFICATION_ENDPOINT")
 	if DB_DSN == "" {
-		log.Fatal("No database configured")
+		panic("No database configured")
 	}
 	if DATA_DIR == "" {
-		log.Fatal("No data directory configured")
+		panic("No data directory configured")
 	}
 }
