@@ -12,25 +12,25 @@ import (
 )
 
 type InfoResult struct {
-	Total int      `json:"total"`
-	Data []CPEInfo `json:"data"`
+	Total int       `json:"total"`
+	Data  []CPEInfo `json:"data"`
 }
 
 type CPEInfo struct {
-	URI         string       `json:"uri"`
-	Part        string       `json:"part"`
-	Vendor      string       `json:"vendor"`
-	Product     string       `json:"product"`
-	Version     string       `json:"version"`
-	Updatecl    string       `json:"updatecl"`
-	Edition     string       `json:"edition"`
-	Swedition   string       `json:"swedition"`
-	TargetSW    string       `json:"targetSW"`
-	Targethw    string       `json:"targethw"`
-	Other       string       `json:"other"`
-	Language    string       `json:"language"`
-	Title       string       `json:"title"`
-	References  []Reference  `json:"references"`
+	URI        string      `json:"uri"`
+	Part       string      `json:"part"`
+	Vendor     string      `json:"vendor"`
+	Product    string      `json:"product"`
+	Version    string      `json:"version"`
+	Updatecl   string      `json:"updatecl"`
+	Edition    string      `json:"edition"`
+	Swedition  string      `json:"swedition"`
+	TargetSW   string      `json:"targetSW"`
+	Targethw   string      `json:"targethw"`
+	Other      string      `json:"other"`
+	Language   string      `json:"language"`
+	Title      string      `json:"title"`
+	References []Reference `json:"references"`
 }
 
 type Reference struct {
@@ -48,13 +48,13 @@ type InfoData struct {
 
 func getReferences(uri string, db *sql.DB, ctx context.Context) ([]Reference, error) {
 	references := []Reference{}
-	
+
 	r := sqlutil.NewRecordType(Reference{})
-	q:= sqlutil.Select(r.Fields()...).
+	q := sqlutil.Select(r.Fields()...).
 		From("cpe_references").
 		Where(
 			sqlutil.Cond().
-			Equal("cpe_uri",uri),
+				Equal("cpe_uri", uri),
 		)
 
 	query, args := q.String(), q.QueryArgs()
@@ -72,30 +72,30 @@ func getReferences(uri string, db *sql.DB, ctx context.Context) ([]Reference, er
 		if err != nil {
 			return nil, errors.Wrap(err, "cannot scan snooze data")
 		}
-		references = append(references,sr)
+		references = append(references, sr)
 	}
 
 	return references, nil
 }
 
-func getCpes(data InfoData,db *sql.DB,ctx context.Context) (InfoResult, error) {
+func getCpes(data InfoData, db *sql.DB, ctx context.Context) (InfoResult, error) {
 
-	infoResults:= InfoResult {
+	infoResults := InfoResult{
 		Total: 0,
-		Data: nil,
+		Data:  nil,
 	}
 
 	q := sqlutil.Select("COUNT(*)").
 		From("cpe_dict").
 		Where(
 			sqlutil.Cond().
-			Equal("part", data.part).
-			And().
-			Equal("product", data.product).
-			And().
-			Equal("vendor", data.vendor),
+				Equal("part", data.part).
+				And().
+				Equal("product", data.product).
+				And().
+				Equal("vendor", data.vendor),
 		)
-	
+
 	query, args := q.String(), q.QueryArgs()
 
 	rows, err := db.Query(query, args...)
@@ -107,7 +107,7 @@ func getCpes(data InfoData,db *sql.DB,ctx context.Context) (InfoResult, error) {
 
 	err = rows.Scan(&infoResults.Total)
 	rows.Close()
-	if err != nil  {
+	if err != nil {
 		flog.Error(err)
 		return infoResults, errors.New("internal error")
 	}
@@ -135,13 +135,13 @@ func getCpes(data InfoData,db *sql.DB,ctx context.Context) (InfoResult, error) {
 			vendor = ?
 		ORDER BY version
 		LIMIT ? OFFSET ?
-	`,data.part,data.product,data.vendor,data.count,data.start)
+	`, data.part, data.product, data.vendor, data.count, data.start)
 	if err != nil {
 		flog.Error(err)
 		return infoResults, errors.New("internal error")
 	}
 	defer rows.Close()
-	
+
 	for rows.Next() {
 		var sr CPEInfo
 		err = rows.Scan(
@@ -160,12 +160,11 @@ func getCpes(data InfoData,db *sql.DB,ctx context.Context) (InfoResult, error) {
 			&sr.Title,
 		)
 
-
 		if err != nil {
 			flog.Error(err)
 			return infoResults, errors.New("internal error")
 		}
-		sr.References, err = getReferences(sr.URI,db, ctx)
+		sr.References, err = getReferences(sr.URI, db, ctx)
 		if err != nil {
 			flog.Error(err)
 			return infoResults, errors.New("internal error")
