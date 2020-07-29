@@ -17,23 +17,23 @@ type InfoResult struct {
 }
 
 type CPEInfo struct {
-	URI         string   `json:"uri"`
-	Part        string   `json:"part"`
-	Vendor      string   `json:"vendor"`
-	Product     string   `json:"product"`
-	Version     string   `json:"version"`
-	Updatecl    string   `json:"updatecl"`
-	Edition     string   `json:"edition"`
-	Swedition   string   `json:"swedition"`
-	TargetSW    string   `json:"targetSW"`
-	Targethw    string   `json:"targethw"`
-	Other       string   `json:"other"`
-	Language    string   `json:"language"`
-	Title       string   `json:"title"`
-	References  string   `json:"references"`
+	URI         string       `json:"uri"`
+	Part        string       `json:"part"`
+	Vendor      string       `json:"vendor"`
+	Product     string       `json:"product"`
+	Version     string       `json:"version"`
+	Updatecl    string       `json:"updatecl"`
+	Edition     string       `json:"edition"`
+	Swedition   string       `json:"swedition"`
+	TargetSW    string       `json:"targetSW"`
+	Targethw    string       `json:"targethw"`
+	Other       string       `json:"other"`
+	Language    string       `json:"language"`
+	Title       string       `json:"title"`
+	References  []Reference  `json:"references"`
 }
 
-type reference struct {
+type Reference struct {
 	URL         string `json:"url" sql:"url"`
 	Description string `json:"description" sql:"description"`
 }
@@ -44,6 +44,38 @@ type InfoData struct {
 	part    string
 	start   int
 	count   int
+}
+
+func getReferences(uri string, db *sql.DB, ctx context.Context) ([]Reference, error) {
+	references := []Reference{}
+	
+	r := sqlutil.NewRecordType(Reference{})
+	q:= sqlutil.Select(r.Fields()...).
+		From("cpe_references").
+		Where(
+			sqlutil.Cond().
+			Equal("cpe_uri",uri),
+		)
+
+	query, args := q.String(), q.QueryArgs()
+
+	rows, err := db.Query(query, args...)
+	if err != nil {
+		flog.Error(err)
+		return nil, errors.New("internal error")
+	}
+	defer rows.Close()
+
+	for rows.Next() {
+		var sr Reference
+		err = rows.Scan(sqlutil.NewRecordType(&sr).Values()...)
+		if err != nil {
+			return nil, errors.Wrap(err, "cannot scan snooze data")
+		}
+		references = append(references,sr)
+	}
+
+	return references, nil
 }
 
 func getCpes(data InfoData,db *sql.DB,ctx context.Context) (InfoResult, error) {
@@ -101,6 +133,7 @@ func getCpes(data InfoData,db *sql.DB,ctx context.Context) (InfoResult, error) {
 			part = ? AND
 			product = ? AND
 			vendor = ?
+		ORDER BY version
 		LIMIT ? OFFSET ?
 	`,data.part,data.product,data.vendor,data.count,data.start)
 	if err != nil {
@@ -132,6 +165,12 @@ func getCpes(data InfoData,db *sql.DB,ctx context.Context) (InfoResult, error) {
 			flog.Error(err)
 			return infoResults, errors.New("internal error")
 		}
+		sr.References, err = getReferences(sr.URI,db, ctx)
+		if err != nil {
+			flog.Error(err)
+			return infoResults, errors.New("internal error")
+		}
+
 		infoResults.Data = append(infoResults.Data, sr)
 	}
 	flog.Info(infoResults)
