@@ -181,6 +181,76 @@ func handleSearch(db *sql.DB) func (http.ResponseWriter,*http.Request){
 	}
 }
 
+func handleInfo(db *sql.DB) func (http.ResponseWriter,*http.Request){
+	return func (w http.ResponseWriter,r *http.Request){
+		log.Println("productVersions")
+		if r.Method != "GET" {
+			http.Error(w, "Method is not supported.", http.StatusNotFound)
+			return
+		}
+
+		r.ParseForm()
+		ctx := context.Background()
+		if len(r.Form["product"]) != 1 {
+			http.Error(w, "Missing product",http.StatusBadRequest)
+			return
+		}
+		if len(r.Form["vendor"]) != 1 {
+			http.Error(w, "Missing vendor",http.StatusBadRequest)
+			return
+		}
+		if len(r.Form["part"]) != 1 {
+			http.Error(w, "Missing part",http.StatusBadRequest)
+			return
+		}
+
+		var start int
+		if len(r.Form["start"]) != 0 {
+			s, err := strconv.Atoi(r.Form["start"][0])
+			log.Println(s)
+			if err == nil {
+				start = s
+			}
+		}
+
+		count := 20
+		if len(r.Form["count"]) != 0 {
+			s, err := strconv.Atoi(r.Form["count"][0])
+			if err == nil || s > 50 {
+				count = s
+			}
+		}
+
+		data := InfoData {
+			part: r.Form["part"][0],
+			vendor: r.Form["vendor"][0],
+			product: r.Form["product"][0],
+			start: start,
+			count: count,
+		}
+
+		res, err := getCpes(data,db,ctx)
+		if err != nil {
+			if err == errors.New("Internal error") {
+				http.Error(w, "Internal error",http.StatusInternalServerError)
+				return
+			} else {
+				http.Error(w, err.Error(),http.StatusBadRequest)
+				return
+			}
+		}
+
+		serialized, err := json.Marshal(res)
+		if err != nil {
+			flog.Error(err)
+			http.Error(w, "Internal error",http.StatusInternalServerError)
+			return
+		}
+		w.Header().Set("Content-Type", "application/json")
+		w.Write(serialized)
+	}
+}
+
 
 func main() {
 	LoadConfig()
@@ -195,8 +265,8 @@ func main() {
 	http.HandleFunc("/monitor/remove", handleMonitor(db,REMOVE))  // Remove configurations to be monitored
 	http.HandleFunc("/monitor/update", handleMonitor(db,UPDATE))  // Remove configurations to be monitored
 	http.HandleFunc("/searchCPE", handleSearch(db)) // search for a CPE
+	http.HandleFunc("/productVersions", handleInfo(db)) // search for a CPE
 
-	
 	go NotificationCron(db,2* time.Hour)
 	go ImportCron(db, 24*time.Hour)
 

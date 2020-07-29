@@ -12,8 +12,8 @@ import (
 )
 
 type InfoResult struct {
-	Total int `json:"total"`
-	Data []CPEInfo `'json:"data"`
+	Total int      `json:"total"`
+	Data []CPEInfo `json:"data"`
 }
 
 type CPEInfo struct {
@@ -173,7 +173,6 @@ func getCpes(data InfoData,db *sql.DB,ctx context.Context) (InfoResult, error) {
 
 		infoResults.Data = append(infoResults.Data, sr)
 	}
-	flog.Info(infoResults)
 	return infoResults, nil
 
 }
