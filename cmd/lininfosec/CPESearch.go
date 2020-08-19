@@ -17,7 +17,7 @@ type SearchResult struct {
 
 type SearchRow struct {
 	URI            string `json:"uri" sql:"URI"`
-	Part           string `jswon:"uri" sql:"part"`
+	Part           string `json:"uri" sql:"part"`
 	Vendor         string `json:"vendor" sql:"vendor"`
 	Product        string `json:"product" sql:"product"`
 	Title          string `json:"title" sql:"title"`

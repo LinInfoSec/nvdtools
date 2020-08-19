@@ -19,7 +19,7 @@ The endpoint to add configurations to monitor is `/monitor/add` accepting a POST
 
 ```json
 {
-	"configuraiton": "host1.foo.bar",
+	"configuration": "host1.foo.bar",
 	"cpes": [
 		"cpe:2.3:a:foocorp:foo:1.3.4:*:*:*:*:*:*:*",
 		"cpe:2.3:a:barcorp:bar:1.12:*:*:*:*:*:*:*",
