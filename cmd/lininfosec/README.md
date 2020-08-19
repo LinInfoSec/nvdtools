@@ -66,7 +66,7 @@ If the configuration doesn't exist error code 400 will be returned by LinInfoSec
 Updating configurations
 -----------------------
 
-The endpoint to stop monitoring configurations is `/monitor/remove` accepting a POST request with the body following the JSON schema:
+The endpoint to stop monitoring configurations is `/monitor/update` accepting a POST request with the body following the JSON schema:
 
 ```json
 {
