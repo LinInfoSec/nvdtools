@@ -12,6 +12,15 @@ It exposes the following API:
 - '/searchCPE' accepting HTTP GET requests, to search among the CPE dictionnary
 - '/productVersions' accepting HTTP GET requests, to search among the CPE dictionnary
 
+Configuration
+-------------
+
+To run, lininfosec requires a set of environnement variables to be defined:
+
+- `LININFOSEC_MYSQL_DSN` needs to be set to a mysql DSN (ex: `username:password@protocol(address)/dbname?param=value`)
+- `LININFOSEC_DATA_DIR` needs to be set to a data directory to store the CVEs and the cpe dictionnary
+- `LININFOSEC_NOTIFICATION_ENDPOINT` needs to be set to a URL where the vulnerability notifications will be sent.
+
 Adding configurations
 ---------------------
 
