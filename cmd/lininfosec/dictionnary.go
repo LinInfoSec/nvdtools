@@ -3,7 +3,6 @@ package main
 import (
 	"context"
 	"os"
-	"log"
 	"time"
 	"compress/gzip"
 
@@ -54,8 +53,6 @@ func insertBatch(batch []CPERecord,references []ReferenceRecord,db *sql.DB, ctx 
 		query, args  := q.String(), q.QueryArgs()
 		_, err := db.ExecContext(ctx, query, args...)
 		if err != nil {
-			log.Printf("%#v",err)
-			log.Printf("%#v",batch)
 			return errors.Wrap(err, "Cannot insert CPE batch")
 		}
 	}
@@ -70,8 +67,6 @@ func insertBatch(batch []CPERecord,references []ReferenceRecord,db *sql.DB, ctx 
 		query, args  := q.String(), q.QueryArgs()
 		_, err := db.ExecContext(ctx, query, args...)
 		if err != nil {
-			log.Printf("%#v",err)
-			log.Printf("%#v",batch)
 			return errors.Wrap(err, "Cannot insert CPE references")
 		}
 	}
@@ -91,7 +86,7 @@ func ImportDictionnary(db *sql.DB,ctx context.Context) error {
 		LocalDir: DATA_DIR,
 	}
 
-	log.Println("Downloading CPE dictionnary")
+	flog.Infoln("Downloading CPE dictionnary")
 	if err := dfs.Do(ctx); err != nil {
 		return err
 	}
@@ -107,7 +102,7 @@ func ImportDictionnary(db *sql.DB,ctx context.Context) error {
 		return err
 	}
 
-	log.Println("Decoding xml dictionnary")
+	flog.Infoln("Decoding xml dictionnary")
 	list, err := cpedict.Decode(dict)
 	dict_compressed.Close()
 	dict.Close()
@@ -115,7 +110,7 @@ func ImportDictionnary(db *sql.DB,ctx context.Context) error {
 		return err
 	}
 
-	log.Println("Inserting into the database")
+	flog.Infoln("Inserting into the database")
 	const batch_size =  128
 	var batch []CPERecord
 	var references_batch []ReferenceRecord;
@@ -128,7 +123,7 @@ func ImportDictionnary(db *sql.DB,ctx context.Context) error {
 			batch = nil
 			references_batch = nil
 			if i / batch_size % 50 == 0 {
-				log.Println("Inserting batch", i/batch_size)
+				flog.Debug("Inserting batch: ", i/batch_size)
 			}
 		}
 		
@@ -164,7 +159,7 @@ func ImportDictionnary(db *sql.DB,ctx context.Context) error {
 		return err
 	}
 	
-	log.Println("CPE import over")
+	flog.Infoln("CPE import over")
 	return nil
 }
 
