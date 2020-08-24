@@ -15,6 +15,7 @@ const (
 	ADD = iota
 	UPDATE
 	REMOVE
+	GET
 )
 
 type Configuration struct {
@@ -221,4 +222,44 @@ func DeleteConfiguration(db *sql.DB, uid string) (err error) {
 	}
 	
 	return nil
+}
+
+func GetConfiguration(db *sql.DB, uid string) (Configuration, error) {
+	config := Configuration {
+		Name: uid,
+		CPEs: nil,
+	}
+
+	q := sqlutil.Select("cpe_uri").
+		From("cpe_monitored").
+		Where(
+			sqlutil.Cond().
+				Equal("configuration_uid", uid),
+		)
+	
+	query, args := q.String(), q.QueryArgs()
+
+	rows, err := db.Query(query, args...)
+
+	if err != nil {
+		flog.Error(err)
+		return config, errors.New("internal error")
+	}
+	defer rows.Close()
+
+	for rows.Next() {
+		var cpe string
+		err = rows.Scan(&cpe)
+		if err != nil {
+			flog.Error(err)
+			return config, errors.New("internal error")
+		}
+		config.CPEs = append(config.CPEs, cpe)
+	}
+
+	if len(config.CPEs) == 0 {
+		return config, errors.New("Configuration doesn't exist")
+	}
+	
+	return config, nil
 }

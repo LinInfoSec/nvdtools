@@ -116,6 +116,42 @@ func handleMonitor(db *sql.DB, action int) func (http.ResponseWriter,*http.Reque
 
 
 		}
+	} else if action == GET {
+		return func(w http.ResponseWriter,r *http.Request) {
+			log.Println("get")
+
+			if r.Method != "GET" {
+				http.Error(w, "Method is not supported.", http.StatusNotFound)
+			}
+			
+			r.ParseForm()
+			
+			if len(r.Form["name"]) != 1 {
+				http.Error(w, "Missing configuration name",http.StatusBadRequest)
+				return
+			}
+
+			res, err := GetConfiguration(db,r.Form["name"][0])
+			if err != nil {
+				if err == errors.New("Internal error") {
+					http.Error(w, "Internal error",http.StatusInternalServerError)
+					return
+				} else {
+					http.Error(w, err.Error(),http.StatusBadRequest)
+					return
+				}
+			}
+
+			serialized, err := json.Marshal(res)
+			if err != nil {
+				flog.Error(err)
+				http.Error(w, "Internal error",http.StatusInternalServerError)
+				return
+			}
+			w.Header().Set("Content-Type", "application/json")
+			w.Write(serialized)
+
+		}
 	}
 
 	panic("unknown action")
@@ -264,6 +300,7 @@ func main() {
 	http.HandleFunc("/monitor/add", handleMonitor(db,ADD))  // Add configurations to be monitored
 	http.HandleFunc("/monitor/remove", handleMonitor(db,REMOVE))  // Remove configurations to be monitored
 	http.HandleFunc("/monitor/update", handleMonitor(db,UPDATE))  // Remove configurations to be monitored
+	http.HandleFunc("/monitor/get", handleMonitor(db,GET))  // GET the stack of a configuration
 	http.HandleFunc("/searchCPE", handleSearch(db)) // search for a CPE
 	http.HandleFunc("/productVersions", handleInfo(db)) // search for a CPE
 
