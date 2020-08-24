@@ -11,17 +11,17 @@ import (
 )
 
 type SearchResult struct {
-	Total int `json:"total"`
-	Data []SearchRow `'json:"data"`
+	Total int         `json:"total"`
+	Data  []SearchRow `'json:"data"`
 }
 
 type SearchRow struct {
-	URI              string    `json:"uri" sql:"URI"`
-	Part             string    `jswon:"uri" sql:"part"`
-	Vendor           string    `json:"vendor" sql:"vendor"`
-	Product          string    `json:"product" sql:"product"`
-	Title            string    `json:"title" sql:"title"`
-	MinimunVersion   string    `json:"minimumVersion" sql:"min_version"`
+	URI            string `json:"uri" sql:"URI"`
+	Part           string `json:"uri" sql:"part"`
+	Vendor         string `json:"vendor" sql:"vendor"`
+	Product        string `json:"product" sql:"product"`
+	Title          string `json:"title" sql:"title"`
+	MinimunVersion string `json:"minimumVersion" sql:"min_version"`
 }
 
 type searchData struct {
@@ -30,23 +30,23 @@ type searchData struct {
 	count int
 }
 
-func CPESearch(data searchData,db *sql.DB,ctx context.Context) (SearchResult, error) {
+func CPESearch(data searchData, db *sql.DB, ctx context.Context) (SearchResult, error) {
 
-	searchResults := SearchResult {
+	searchResults := SearchResult{
 		Total: 0,
-		Data: nil,
+		Data:  nil,
 	}
 
-	if data.query == ""{
+	if data.query == "" {
 		return searchResults, nil
 	}
-	
+
 	rows, err := db.Query(`
 	SELECT 
 		COUNT(DISTINCT part, vendor, product)
 	FROM cpe_dict
 	WHERE MATCH(title) AGAINST(? IN NATURAL LANGUAGE MODE) 
-	`,data.query)
+	`, data.query)
 
 	if err != nil || !rows.Next() {
 		flog.Error(err)
@@ -55,12 +55,11 @@ func CPESearch(data searchData,db *sql.DB,ctx context.Context) (SearchResult, er
 
 	err = rows.Scan(&searchResults.Total)
 	rows.Close()
-	if err != nil  {
+	if err != nil {
 		flog.Error(err)
 		return searchResults, errors.New("internal error")
 	}
 
-	
 	rows, err = db.Query(`
 	SELECT 
 		URI,
@@ -73,7 +72,7 @@ func CPESearch(data searchData,db *sql.DB,ctx context.Context) (SearchResult, er
 	WHERE MATCH(title) AGAINST(? IN NATURAL LANGUAGE MODE) 
 	GROUP BY vendor, product, part
 	LIMIT ? OFFSET ?
-	`,data.query,data.count ,data.start)
+	`, data.query, data.count, data.start)
 	if err != nil {
 		flog.Error(err)
 		return searchResults, errors.New("internal error")
@@ -82,14 +81,13 @@ func CPESearch(data searchData,db *sql.DB,ctx context.Context) (SearchResult, er
 
 	for rows.Next() {
 		var row SearchRow
-		err = rows.Scan(&row.URI,&row.Part,&row.Vendor,&row.Product,&row.Title,&row.MinimunVersion)
+		err = rows.Scan(&row.URI, &row.Part, &row.Vendor, &row.Product, &row.Title, &row.MinimunVersion)
 		if err != nil {
 			flog.Error(err)
 			return searchResults, errors.New("internal error")
 		}
-		searchResults.Data= append(searchResults.Data, row)
+		searchResults.Data = append(searchResults.Data, row)
 	}
-
 
 	return searchResults, nil
 }

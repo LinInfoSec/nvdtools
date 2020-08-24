@@ -12,6 +12,15 @@ It exposes the following API:
 - '/searchCPE' accepting HTTP GET requests, to search among the CPE dictionnary
 - '/productVersions' accepting HTTP GET requests, to search among the CPE dictionnary
 
+Configuration
+-------------
+
+To run, lininfosec requires a set of environnement variables to be defined:
+
+- `LININFOSEC_MYSQL_DSN` needs to be set to a mysql DSN (ex: `username:password@protocol(address)/dbname?param=value`)
+- `LININFOSEC_DATA_DIR` needs to be set to a data directory to store the CVEs and the cpe dictionnary
+- `LININFOSEC_NOTIFICATION_ENDPOINT` needs to be set to a URL where the vulnerability notifications will be sent.
+
 Adding configurations
 ---------------------
 
@@ -19,7 +28,7 @@ The endpoint to add configurations to monitor is `/monitor/add` accepting a POST
 
 ```json
 {
-	"configuraiton": "host1.foo.bar",
+	"configuration": "host1.foo.bar",
 	"cpes": [
 		"cpe:2.3:a:foocorp:foo:1.3.4:*:*:*:*:*:*:*",
 		"cpe:2.3:a:barcorp:bar:1.12:*:*:*:*:*:*:*",
@@ -66,7 +75,7 @@ If the configuration doesn't exist error code 400 will be returned by LinInfoSec
 Updating configurations
 -----------------------
 
-The endpoint to stop monitoring configurations is `/monitor/remove` accepting a POST request with the body following the JSON schema:
+The endpoint to stop monitoring configurations is `/monitor/update` accepting a POST request with the body following the JSON schema:
 
 ```json
 {
