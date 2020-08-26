@@ -119,7 +119,7 @@ func getConfigurations(db *sql.DB, ctx context.Context, chunkSize int) <-chan pa
 }
 
 type VulnerableConfiguration struct {
-	Configuration string `json:"configuration"`
+	Configuration string `json:"configurationUid"`
 	cveId         string
 	CVE           *schema.NVDCVEFeedJSON10DefCVEItem `json:"cve"`
 }

@@ -28,7 +28,7 @@ The endpoint to add configurations to monitor is `/monitor/add` accepting a POST
 
 ```json
 {
-	"configuration": "host1.foo.bar",
+	"configurationUid": "host1.foo.bar",
 	"cpes": [
 		"cpe:2.3:a:foocorp:foo:1.3.4:*:*:*:*:*:*:*",
 		"cpe:2.3:a:barcorp:bar:1.12:*:*:*:*:*:*:*",
@@ -49,7 +49,7 @@ If the configuration doesn't exists, error code 400 will be returned by LinInfoS
 
 ```json
 {
-	"configuraiton": "host1.foo.bar",
+	"configurationUid": "host1.foo.bar",
 	"cpes": [
 		"cpe:2.3:a:foocorp:foo:1.3.4:*:*:*:*:*:*:*",
 		"cpe:2.3:a:barcorp:bar:1.12:*:*:*:*:*:*:*",
@@ -65,7 +65,7 @@ The endpoint to stop monitoring configurations is `/monitor/remove` accepting a 
 
 ```json
 {
-	"configuration": "host1.foo.bar"
+	"configurationUid": "host1.foo.bar"
 }
 ```
 
@@ -79,7 +79,7 @@ The endpoint to stop monitoring configurations is `/monitor/update` accepting a 
 
 ```json
 {
-	"configuration": "host1.foo.bar",
+	"configurationUid": "host1.foo.bar",
 	"cpes": [
 		"cpe:2.3:a:foocorp:foo:1.3.4:*:*:*:*:*:*:*",
 		"cpe:2.3:a:barcorp:bar:1.12:*:*:*:*:*:*:*",
@@ -180,7 +180,7 @@ When a vulnerability is detected a HTTP POST request is sent to a configured end
 ```json
 [
 	{
-		"configuration" : "host1.foo.bar",
+		"configurationUid" : "host1.foo.bar",
 		"cve" :  " as described by the NVD cve json schema: CVE_JSON_4.0_min_1.1.schema"
 	}
 ]
