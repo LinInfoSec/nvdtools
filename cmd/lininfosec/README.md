@@ -185,3 +185,14 @@ When a vulnerability is detected a HTTP POST request is sent to a configured end
 	}
 ]
 ```
+
+Development
+===========
+
+With docker
+-----------
+
+The docker-compose file allows to quickly launch the service with its database, and is intended to be used to help development of other tools that would use the LinInfoSec API, such as SmartSLA.
+
+The Dockerfile for lininfosec builds an image with the LinInfoSec service running.
+To build it, launch from the `nvdtools` folder : `docker build . -f cmd/lininfosec/Dockerfile -t lininfosec:latest`.
