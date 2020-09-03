@@ -33,7 +33,7 @@ const (
 )
 
 type Configuration struct {
-	Name string   `json:"configuration"`
+	Name string   `json:"configurationUid"`
 	CPEs []string `json:"cpes"`
 }
 

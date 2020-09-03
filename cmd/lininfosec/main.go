@@ -103,7 +103,7 @@ func handleMonitor(db *sql.DB, action int) func(http.ResponseWriter, *http.Reque
 			}
 
 			var conf struct {
-				Name string `json:"configuration"`
+				Name string `json:"configurationUid"`
 			}
 
 			if err = json.Unmarshal(body, &conf); err != nil {
