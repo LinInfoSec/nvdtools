@@ -148,14 +148,14 @@ The result is the following JSON object:
 	"data": [
 		{
 			"uri" : "cpe:2.3:a:foocorp:foo:-:*:*:*:*:*:*:*",
-			"part": "a"
+			"part": "a",
 			"vendor": "foocorp",
 			"product": "foo",
 			"title": "foo software",
 		},
 		{
 			"uri" : "cpe:2.3:a:barcorp:bar:-:*:*:*:*:*:*:*",
-			"part": "a"
+			"part": "a",
 			"vendor": "barcorp",
 			"product": "bar",
 			"title": "bar software",
